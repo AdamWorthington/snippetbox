@@ -6,6 +6,7 @@ import(
     "os"
     "flag"
     "net/http"
+    "html/template"
     "snippetbox.adamworthington.net/internal/models"
     _ "github.com/go-sql-driver/mysql"
 )
@@ -13,6 +14,7 @@ import(
 type application struct {
     logger *slog.Logger
     snippets *models.SnippetModel
+    templateCache map[string]*template.Template
 }
 
 func main() {
@@ -29,10 +31,16 @@ func main() {
         os.Exit(1)
     }
     defer db.Close() 
+    cache, err := newTemplateCache()
+    if err != nil {
+        logger.Error(err.Error())
+        os.Exit(1)
+    }
     
     app := &application{
         snippets: &models.SnippetModel{DB: db},
         logger: logger,
+        templateCache : cache,
     }
 
     logger.Info("Starting server on port", "addr", *addr)
