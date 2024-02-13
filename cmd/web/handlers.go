@@ -15,14 +15,15 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
         return
     }
     snippets, err := app.snippets.Latest()
-
     if err != nil {
         app.serveError(w, r, err)
         return
     }
-    app.render(w, r, http.StatusOK, "home.html", templateData{
-        Snippets: snippets,
-    })
+
+    data := app.newTemplateData(r)
+    data.Snippets = snippets
+
+    app.render(w, r, http.StatusOK, "home.html", data)
 }
 
 func (app *application) snippetView(w http.ResponseWriter, r * http.Request) {
@@ -40,9 +41,10 @@ func (app *application) snippetView(w http.ResponseWriter, r * http.Request) {
         }
         return
     }
-    app.render(w, r, http.StatusOK, "view.html", templateData{
-        Snippet: snippet,
-    })
+    data := app.newTemplateData(r)
+    data.Snippet = snippet
+    
+    app.render(w, r, http.StatusOK, "view.html", data)
 }
 
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) { 

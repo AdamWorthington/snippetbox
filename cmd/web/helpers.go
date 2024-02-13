@@ -1,9 +1,16 @@
 package main
 
 import (
+    "bytes"
     "fmt"
     "net/http"
+    "time"
 )
+func (app *application) newTemplateData(r *http.Request) templateData {
+    return templateData {
+        CurrentYear: time.Now().Year(),
+    }
+}
 func (app *application) render(w http.ResponseWriter, r *http.Request, status int, page string, data templateData) { // Retrieve the appropriate template set from the cache based on the page
     ts, ok := app.templateCache[page] 
     if !ok {
@@ -11,11 +18,15 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
         app.serveError(w, r, err)
         return
     }
-    w.WriteHeader(status)
-    err := ts.ExecuteTemplate(w, "base", data)
+    buf := new(bytes.Buffer)
+
+    err := ts.ExecuteTemplate(buf, "base", data)
     if err != nil {
         app.serveError(w, r, err) 
+        return
     }
+    w.WriteHeader(status)
+    buf.WriteTo(w)
 }
 func (app *application) serveError(w http.ResponseWriter, r *http.Request, err error) {
     var (
