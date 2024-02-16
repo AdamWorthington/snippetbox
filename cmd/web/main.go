@@ -1,20 +1,28 @@
 package main
 
-import(
-    "log/slog"
-    "database/sql"
-    "os"
-    "flag"
-    "net/http"
-    "html/template"
-    "snippetbox.adamworthington.net/internal/models"
-    _ "github.com/go-sql-driver/mysql"
+import (
+	"database/sql"
+	"flag"
+	"html/template"
+	"log/slog"
+	"net/http"
+	"os"
+	"time"
+
+	"snippetbox.adamworthington.net/internal/models"
+
+	"github.com/alexedwards/scs/mysqlstore"
+	"github.com/alexedwards/scs/v2"
+	"github.com/go-playground/form/v4"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type application struct {
     logger *slog.Logger
     snippets *models.SnippetModel
     templateCache map[string]*template.Template
+    formDecoder *form.Decoder
+    sessionManager *scs.SessionManager
 }
 
 func main() {
@@ -37,10 +45,18 @@ func main() {
         os.Exit(1)
     }
     
+    formDecoder := form.NewDecoder()
+
+    sessionManager := scs.New()
+    sessionManager.Store = mysqlstore.New(db)
+    sessionManager.Lifetime = time.Hour * 12
+
     app := &application{
         snippets: &models.SnippetModel{DB: db},
         logger: logger,
         templateCache : cache,
+        formDecoder: formDecoder,
+        sessionManager: sessionManager,
     }
 
     logger.Info("Starting server on port", "addr", *addr)
